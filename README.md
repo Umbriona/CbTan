@@ -15,7 +15,10 @@ We use alphafold to predict 5 structures for each of the 260 sequences. Of the f
 #### Structures that faled prediction in alphafold
 Alphafold failed to generate structures for four of the 260 sequences. 
 
-#TODO: Identify sequences tht failed.
+**TanCb3**
+**2641118398**
+**2826355069**
+**2854057680**
 
 #### plddt analysis
 
