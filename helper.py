@@ -144,8 +144,8 @@ def view_alignment(aln, fontsize="9pt", plot_width=800):
     source = ColumnDataSource(dict(x=gx, y=gy, recty=recty, text=text, colors=colors))
     plot_height = len(seqs)*15+50
     x_range = Range1d(0,N+1, bounds='auto')
-    if N>100:
-        viewlen=100
+    if N>1000:
+        viewlen=1000
     else:
         viewlen=N
     #view_range is for the close up view
