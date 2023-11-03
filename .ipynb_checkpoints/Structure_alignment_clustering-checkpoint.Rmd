@@ -1,0 +1,175 @@
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+
+```{r warning=FALSE,  echo=FALSE,message=FALSE, results='hide'}
+#Load libraries
+library(ArrayExpress)
+library(dplyr)
+library(DESeq2)
+library(pheatmap)
+library(ggplot2)
+library(ggrepel)
+library(RColorBrewer)
+library(limma)
+library(edgeR)
+library(enrichR)
+library(gridExtra)
+library(stringr)
+library(knitr)
+library(randomForest)
+library(caret)
+library(mlbench)
+library(ComplexHeatmap)
+library(factoextra)
+library(mstknnclust)
+library(igraph)
+```
+
+```{r}
+global_clusters <- read.csv('global_cluster_data_plddt70_23_10_29_all-4.csv')
+active_site <- read.csv("active_site_class.csv")
+active_site <- merge(active_site,global_clusters, by.x="id",by.y="id")
+active_site = active_site[match(global_clusters$id, active_site$id),]
+mat_x <- read.csv("global_dist_data_23_08_13-2.csv")
+rownames(mat_x) <- mat_x[,1]
+mat_x <- mat_x[, -1]
+mat_x <- as.matrix(mat_x)
+```
+
+
+
+
+```{r}
+
+
+
+PALETTE <- c("#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499", 
+                             "#44AA99", "#999933", "#882255", "#661100", "#6699CC", "#888888")
+PALETTE2   <- c("#999999", "#E69F00", "#56B4E9", "#009E73", 
+                       "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+FONT_SIZE_LEGEND_TITLE <-20
+FONT_SIZE_LEGEND_LABEL <-16
+
+FONT_SIZE_ANNOTATION_NAME <- 20
+
+ANNOTATION_HIGHT = 1 # cm
+ANNOTATION_GAP = 2 # Points
+
+LEGEND_GRID_SIZE <- 7
+
+LEGEND_HIGHT <- LEGEND_GRID_SIZE * 7
+
+DEND_LINE_WIDTH <- 2 # Points
+DEND_HIGHT <- 20 # mm
+
+ha = HeatmapAnnotation(Cap_length = factor(global_clusters$cap_length_label),
+                       Global_structure = factor(global_clusters$struct_cluster_label), 
+                       Global_sequence = factor(global_clusters$seq_cluster_label),
+                       Active_site_class = factor(active_site$class),
+                       simple_anno_size = unit(ANNOTATION_HIGHT, "cm"),
+                       gap = unit(ANNOTATION_GAP, "points"),
+                       annotation_name_gp = gpar(fontsize=FONT_SIZE_ANNOTATION_NAME),
+                       annotation_label = c("Cap_length"="Cap description", "Global_structure"="Cluster (Structure)", "Global_sequence"="Cluster (Sequence)", "Active_site_class"="3rd catalytic residue"),
+                       col = list(Cap_length = c("No cap"=PALETTE2[1], "Cap at position: 1" = PALETTE2[2], "Cap at position: 2" = PALETTE2[3], "Cap at position: 3"=PALETTE2[4]),
+                                  Global_structure = c("Outliers"=PALETTE[12], "10" = PALETTE[1],"11" = PALETTE[11], "1" = PALETTE[2], "2" = PALETTE[3], "3" = PALETTE[4], "4"=PALETTE[5], "5"=PALETTE[6], "6"=PALETTE[7], "7"=PALETTE[8], "8"=PALETTE[9], "9"=PALETTE[10]),
+                                  Global_sequence  = c("Outliers"=PALETTE[12], "10" = PALETTE[1], "1" = PALETTE[2], "2" = PALETTE[3], "3" = PALETTE[4], "4"=PALETTE[5], "5"=PALETTE[6], "6"=PALETTE[7], "7"=PALETTE[8], "8"=PALETTE[9], "9"=PALETTE[10]),
+                                  Active_site_class = c("Amide" = "blue", "Acid" = "red")),
+                       annotation_legend_param = list(
+        Cap_length = list(
+                title = "Cap",
+                title_gp = gpar(fontsize=FONT_SIZE_LEGEND_TITLE, fontface="bold"),
+                labels_gp = gpar(fontsize=FONT_SIZE_LEGEND_LABEL),
+                grid_height = unit(LEGEND_GRID_SIZE, "mm"),
+                grid_width = unit(LEGEND_GRID_SIZE, "mm")
+                #at = c(0, 0.5, 1),
+                #labels = c("zero", "median", "one")
+            ),
+        Global_structure = list(
+                title = "Clusters",
+                title_gp = gpar(fontsize=FONT_SIZE_LEGEND_TITLE, fontface="bold"),
+                at = c("Outliers", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"),
+                labels = c("Outliers", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"),
+                labels_gp = gpar(fontsize=FONT_SIZE_LEGEND_LABEL),
+                grid_height = unit(LEGEND_GRID_SIZE, "mm"),
+                grid_width = unit(LEGEND_GRID_SIZE, "mm")
+            ),
+        Global_sequence = list(
+                title = "Sequence clusters",
+                title_gp = gpar(fontsize=FONT_SIZE_LEGEND_TITLE, fontface="bold"),
+                at = c("Outliers", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"),
+                labels = c("Outliers", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"),
+                labels_gp = gpar(fontsize=FONT_SIZE_LEGEND_LABEL),
+                grid_height = unit(LEGEND_GRID_SIZE, "mm"),
+                grid_width = unit(LEGEND_GRID_SIZE, "mm")
+            ),
+        Active_site_class = list(
+                title = "Active site",
+                title_gp = gpar(fontsize=FONT_SIZE_LEGEND_TITLE, fontface="bold"),
+                at = c("Amide", "Acid"),
+                labels = c("Amide", "Acid"),
+                labels_gp = gpar(fontsize=FONT_SIZE_LEGEND_LABEL),
+                grid_height = unit(LEGEND_GRID_SIZE, "mm"),
+                grid_width = unit(LEGEND_GRID_SIZE, "mm")
+        )),
+                       show_legend= c(TRUE, TRUE, FALSE, TRUE))
+
+
+
+
+#hl = rowAnnotation(text = anno_text(global_clusters$special_structure, gp = gpar(fontsize=9)))
+
+hl = rowAnnotation(foo = anno_mark(at = which(global_clusters$special_structure!="",arr.ind = T), labels = global_clusters$special_structure[which(global_clusters$special_structure!="")],  labels_gp = gpar(fontsize=20)))
+
+
+hc <- hclust(as.dist(mat_x), method = "average")
+ht = Heatmap(mat_x, bottom_annotation = ha, 
+             right_annotation= hl,
+             cluster_columns = hc,
+             cluster_rows = hc,
+             column_title = "",
+             show_column_names = FALSE,
+             show_row_names = FALSE,
+             heatmap_legend_param = list(title = "RMSD  ",
+                                         title_gp = gpar(fontsize=FONT_SIZE_LEGEND_TITLE, fontface="bold"),
+                                         labels_gp = gpar(fontsize=FONT_SIZE_LEGEND_LABEL),
+                                         legend_height = unit(LEGEND_HIGHT, "mm"),
+                                         grid_width = unit(LEGEND_GRID_SIZE, "mm")),
+             row_split = 4,
+             column_split = 4,
+             row_gap = unit(2, "mm"),
+             column_gap = unit(2, "mm"),
+             row_dend_width = unit(DEND_HIGHT, "mm"),
+             row_dend_gp = gpar(fontsize=FONT_SIZE_LEGEND_LABEL, lwd = DEND_LINE_WIDTH),
+             column_dend_height= unit(DEND_HIGHT, "mm"),
+             column_dend_gp = gpar(fontsize=FONT_SIZE_LEGEND_LABEL, lwd = DEND_LINE_WIDTH))
+
+
+png("Hirarcical_clustering_average.png",width = 1200, height = 800)
+
+draw(ht)
+
+
+```
+
+```{r}
+hc <- hclust(as.dist(mat_x), method = "single")
+png("Hirarcical_clustering_single.png",width = 2420, height = 1444)
+plot(hc)
+```
+
+```{r}
+global_clusters$special_structure[which(global_clusters$special_structure!="")]
+
+```
+
+```{r}
+library(svglite)
+```
+

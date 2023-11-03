@@ -15,6 +15,9 @@ from bokeh.models import ColumnDataSource, Plot, Grid, Range1d
 from bokeh.models.glyphs import Text, Rect
 from bokeh.layouts import gridplot
 
+import logomaker as lm
+import matplotlib.pyplot as plt
+
 def parse_fix_matrix(fileLocation):
 
 
@@ -180,3 +183,63 @@ def view_alignment(aln, fontsize="9pt", plot_width=800):
 
     p = gridplot([[p],[p1]], toolbar_location='below')
     return p
+
+
+df_col = {"D": list(np.array([230,230, 10])/255),
+          "E": list(np.array([230,230, 10])/255),
+          "C": list(np.array([230,230,  0])/255),
+          "M": list(np.array([230,230,  0])/255),
+          "K": list(np.array([ 20, 90,255])/255),
+          "R": list(np.array([ 20, 90,255])/255),
+          "S": list(np.array([250,150,  0])/255),
+          "T": list(np.array([250,150,  0])/255),
+          "F": list(np.array([ 50, 50,170])/255), 
+          "Y": list(np.array([ 50, 50,170])/255),
+          
+          "N": list(np.array([  0,220,220])/255),
+          "Q": list(np.array([  0,220,220])/255),
+          "G": list(np.array([200,200,200])/255),  # [235,235,235]
+          "L": list(np.array([ 15,130, 15])/255),
+          "V":  list(np.array([15,130, 15])/255),
+          "I":  list(np.array([15,130, 15])/255),
+          "A": list(np.array([160,160,160])/255),
+          "W": list(np.array([180, 90,180])/255),
+          "H": list(np.array([130,130,210])/255),
+          "P": list(np.array([220,150,130])/255),
+          "X": list(np.array([190,160,110])/255)}
+def plotRegions(df, title, start, end):
+   # plt.figure(figsize=[20,5])
+    lm.Logo(df[start:end], figsize=[(end-start)/2,5], color_scheme = df_col)
+    plt.title(f'Profile of cap {title}')
+    plt.ylabel('Information (Bits)')
+    #plt.ylabel('Probability')
+    plt.xlabel('Position')
+    plt.savefig(f"results/{title}_pattern.png")
+    return 0
+
+
+def label_maker_TanCb_active(x):
+    if x[0] != "S" or x[2] != "H":
+        return "Not Tan"
+    elif x[1] in ["D", "E"]:
+        return "Acid"
+    elif x[1] in ["N", "Q"]:
+        return "Amide"
+    else:
+        return "Not Tan"
+
+def label_maker_TanCb_active_why_not(x):
+
+    string = "Missing: "
+    if x[0] != "S":
+        string = string + "".join("S, ")
+    if x[2] != "H":
+        string = string + "".join("H, ")
+    if x[1] not in ["D", "E", "N", "Q"]:
+        string = string + "".join("[D/E/N/Q]")
+
+    if string == "Missing: ":
+        return "Is Tan"
+    if string[-2:] == ", ":
+        return string[:-2]
+    return string
