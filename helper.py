@@ -17,6 +17,7 @@ from bokeh.layouts import gridplot
 
 import logomaker as lm
 import matplotlib.pyplot as plt
+from  matplotlib.ticker import FuncFormatter
 
 def parse_fix_matrix(fileLocation):
 
@@ -207,13 +208,17 @@ df_col = {"D": list(np.array([230,230, 10])/255),
           "H": list(np.array([130,130,210])/255),
           "P": list(np.array([220,150,130])/255),
           "X": list(np.array([190,160,110])/255)}
-def plotRegions(df, title, start, end):
+def plotRegions(df, title, start, end , y_max = 4):
    # plt.figure(figsize=[20,5])
+    end = start + df[start:end].shape[0]
     lm.Logo(df[start:end], figsize=[(end-start)/2,5], color_scheme = df_col)
-    plt.title(f'Profile of cap {title}')
+    plt.title(f'Profile of {title}')
     plt.ylabel('Information (Bits)')
     #plt.ylabel('Probability')
     plt.xlabel('Position')
+    plt.gca().set_xticks([i for i in range(start,end+1, 5)])
+    print(f"Y_lim: {plt.gca().get_ylim()}")
+    plt.gca().set_ylim([0, y_max])
     plt.savefig(f"results/{title}_pattern.png")
     return 0
 
